@@ -2,7 +2,8 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>System Integrity Check</title>
+<title>System Integrity Monitor</title>
+
 <style>
     body {
         margin: 0;
@@ -16,21 +17,22 @@
         position: fixed;
         top: 0;
         left: 0;
+        z-index: 0;
     }
 
     #overlay {
         position: fixed;
         top: 20px;
         left: 20px;
-        z-index: 10;
+        z-index: 2;
         font-size: 14px;
     }
 
     #progressContainer {
-        width: 300px;
-        height: 20px;
+        width: 320px;
+        height: 18px;
         border: 1px solid #00ff00;
-        margin-top: 10px;
+        margin-top: 8px;
     }
 
     #progress {
@@ -39,11 +41,58 @@
         background: #00ff00;
     }
 
-    .scan-line {
-        margin-top: 10px;
-        opacity: 0.8;
+    #terminal {
+        position: fixed;
+        bottom: 20px;
+        left: 20px;
+        width: 500px;
+        height: 150px;
+        background: rgba(0,0,0,0.85);
+        border: 1px solid #00ff00;
+        padding: 10px;
+        z-index: 3;
+    }
+
+    #input {
+        width: 100%;
+        background: black;
+        border: none;
+        color: #00ff00;
+        outline: none;
+        font-family: monospace;
+    }
+
+    .shutdown {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: black;
+        color: red;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+        z-index: 9999;
+        font-size: 22px;
+        text-align: center;
+    }
+
+    /* 🖱️ CURSOR GLITCH + FLICKER */
+    .glitch-cursor {
+        position: fixed;
+        width: 10px;
+        height: 10px;
+        background: #00ff00;
+        pointer-events: none;
+        z-index: 99999;
+        transform: translate(-50%, -50%);
+        mix-blend-mode: difference;
+        opacity: 1;
     }
 </style>
+
 </head>
 
 <body>
@@ -52,15 +101,30 @@
 
 <div id="overlay">
     <div>System Integrity Scan: ACTIVE</div>
-    <div class="scan-line" id="status">Checking core files...</div>
+    <div id="status">Initializing scan...</div>
 
     <div id="progressContainer">
         <div id="progress"></div>
     </div>
 </div>
 
+<div id="terminal">
+    <div>> Terminal access granted</div>
+    <div>> Type command and press ENTER</div>
+    <input id="input" autocomplete="off" placeholder=">_">
+</div>
+
+<div id="shutdown" class="shutdown">
+    <div>CRITICAL SYSTEM FAILURE</div>
+    <div>SHUTDOWN INITIATED...</div>
+    <div id="timer">5</div>
+</div>
+
+<!-- CURSOR -->
+<div id="cursor" class="glitch-cursor"></div>
+
 <script>
-// ---------------- MATRIX BACKGROUND ----------------
+// ---------------- MATRIX ----------------
 const canvas = document.getElementById("matrix");
 const ctx = canvas.getContext("2d");
 
@@ -72,7 +136,7 @@ const fontSize = 16;
 const columns = canvas.width / fontSize;
 const drops = Array.from({ length: columns }, () => Math.random() * canvas.height);
 
-function drawMatrix() {
+function draw() {
     ctx.fillStyle = "rgba(0, 0, 0, 0.05)";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
@@ -80,85 +144,151 @@ function drawMatrix() {
     ctx.font = fontSize + "px monospace";
 
     for (let i = 0; i < drops.length; i++) {
-        const char = chars[Math.floor(Math.random() * chars.length)];
-        ctx.fillText(char, i * fontSize, drops[i] * fontSize);
+        const text = chars[Math.floor(Math.random() * chars.length)];
+        ctx.fillText(text, i * fontSize, drops[i] * fontSize);
 
         if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) {
             drops[i] = 0;
         }
-
         drops[i]++;
     }
 }
+setInterval(draw, 40);
 
-setInterval(drawMatrix, 50);
-
-// ---------------- FAKE PROGRESS BAR ----------------
-let progress = 0;
-const bar = document.getElementById("progress");
+// ---------------- SCAN ----------------
 const status = document.getElementById("status");
+const bar = document.getElementById("progress");
 
-const messages = [
-    "Checking core files...",
-    "Scanning memory sectors...",
-    "Detecting anomalies...",
+const msgs = [
+    "Scanning memory...",
+    "Checking system files...",
     "Bypassing firewall...",
-    "Indexing system registry...",
-    "WARNING: unknown process detected...",
-    "Attempting recovery..."
+    "Analyzing kernel integrity...",
+    "WARNING: unknown process detected",
+    "Attempting isolation..."
 ];
 
+let p = 0;
 setInterval(() => {
-    if (progress < 95) {
-        progress += Math.random() * 2;
-        bar.style.width = progress + "%";
-    }
+    if (p < 93) p += Math.random() * 2;
+    bar.style.width = p + "%";
+    status.textContent = msgs[Math.floor(Math.random() * msgs.length)];
+}, 300);
 
-    status.textContent = messages[Math.floor(Math.random() * messages.length)];
-}, 400);
+// ---------------- POPUPS ----------------
+function popup() {
+    const w = 250, h = 120;
+    const x = Math.random() * (screen.width - w);
+    const y = Math.random() * (screen.height - h);
 
-// ---------------- FAKE POPUP WINDOWS ----------------
-function spawnPopup() {
-    const width = 300;
-    const height = 150;
-    const left = Math.random() * (screen.width - width);
-    const top = Math.random() * (screen.height - height);
+    const win = window.open("", "", `width=${w},height=${h},left=${x},top=${y}`);
+    if (!win) return;
 
-    const popup = window.open(
-        "",
-        "",
-        `width=${width},height=${height},left=${left},top=${top}`
-    );
-
-    if (!popup) return;
-
-    popup.document.write(`
-        <body style="background:black;color:red;font-family:monospace;
-        display:flex;align-items:center;justify-content:center;height:100vh;">
-        <div>
-            <h3>ACCESS DENIED</h3>
-            <p>Unauthorized system interaction detected.</p>
-        </div>
+    win.document.write(`
+        <body style="background:black;color:red;
+        display:flex;align-items:center;justify-content:center;
+        font-family:monospace;">
+        ACCESS DENIED
         </body>
     `);
 
-    setTimeout(() => popup.close(), 2000);
+    setTimeout(() => win.close(), 1500);
 }
 
-// ---------------- SOUND + KEY EVENTS ----------------
+// beep
 function beep() {
-    const ctx = new (window.AudioContext || window.webkitAudioContext)();
-    const osc = ctx.createOscillator();
-    osc.frequency.value = 600;
-    osc.connect(ctx.destination);
+    const audio = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = audio.createOscillator();
+    osc.frequency.value = 500;
+    osc.connect(audio.destination);
     osc.start();
-    osc.stop(ctx.currentTime + 0.1);
+    osc.stop(audio.currentTime + 0.08);
 }
 
 document.addEventListener("keydown", () => {
     beep();
-    spawnPopup();
+    popup();
 });
+
+// ---------------- TERMINAL ----------------
+const input = document.getElementById("input");
+const shutdown = document.getElementById("shutdown");
+const timer = document.getElementById("timer");
+
+let shutdownTriggered = false;
+
+input.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && !shutdownTriggered) {
+        shutdownTriggered = true;
+        startShutdown();
+    }
+});
+
+// ---------------- SHUTDOWN ----------------
+function startShutdown() {
+    let time = 5;
+    shutdown.style.display = "flex";
+
+    const interval = setInterval(() => {
+        timer.textContent = time;
+        time--;
+
+        if (time < 0) {
+            clearInterval(interval);
+            goBlack();
+        }
+    }, 1000);
+}
+
+// ---------------- BLACK SCREEN ----------------
+function goBlack() {
+    document.body.innerHTML = "";
+    document.documentElement.style.background = "black";
+
+    const div = document.createElement("div");
+    div.style.position = "fixed";
+    div.style.top = 0;
+    div.style.left = 0;
+    div.style.width = "100%";
+    div.style.height = "100%";
+    div.style.background = "black";
+    div.style.color = "red";
+    div.style.display = "flex";
+    div.style.alignItems = "center";
+    div.style.justifyContent = "center";
+    div.style.fontFamily = "monospace";
+    div.style.fontSize = "24px";
+    div.innerText = "SYSTEM OFFLINE";
+
+    document.body.appendChild(div);
+
+    if (document.documentElement.requestFullscreen) {
+        document.documentElement.requestFullscreen().catch(() => {});
+    }
+}
+
+// ---------------- CURSOR GLITCH + FLICKER ----------------
+const cursor = document.getElementById("cursor");
+
+let mouseX = 0;
+let mouseY = 0;
+
+document.addEventListener("mousemove", (e) => {
+    mouseX = e.clientX;
+    mouseY = e.clientY;
+});
+
+// jitter + flicker loop
+setInterval(() => {
+    const jitterX = (Math.random() - 0.5) * 12;
+    const jitterY = (Math.random() - 0.5) * 12;
+
+    cursor.style.left = mouseX + jitterX + "px";
+    cursor.style.top = mouseY + jitterY + "px";
+
+    // flicker effect
+    cursor.style.opacity = Math.random() > 0.85 ? "0.1" : "1";
+}, 35);
 
 // ---------------- RESIZE ----------------
 window.addEventListener("resize", () => {
