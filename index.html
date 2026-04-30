@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>System Integrity Check</title>
+<style>
+    body {
+        margin: 0;
+        overflow: hidden;
+        background: black;
+        font-family: monospace;
+        color: #00ff00;
+    }
+
+    canvas {
+        position: fixed;
+        top: 0;
+        left: 0;
+    }
+
+    #overlay {
+        position: fixed;
+        top: 20px;
+        left: 20px;
+        z-index: 10;
+        font-size: 14px;
+    }
+
+    #progressContainer {
+        width: 300px;
+        height: 20px;
+        border: 1px solid #00ff00;
+        margin-top: 10px;
+    }
+
+    #progress {
+        width: 0%;
+        height: 100%;
+        background: #00ff00;
+    }
+
+    .scan-line {
+        margin-top: 10px;
+        opacity: 0.8;
+    }
+</style>
+</head>
+
+<body>
+
+<canvas id="matrix"></canvas>
+
+<div id="overlay">
+    <div>System Integrity Scan: ACTIVE</div>
+    <div class="scan-line" id="status">Checking core files...</div>
+
+    <div id="progressContainer">
+        <div id="progress"></div>
+    </div>
+</div>
+
+<script>
+// ---------------- MATRIX BACKGROUND ----------------
+const canvas = document.getElementById("matrix");
+const ctx = canvas.getContext("2d");
+
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+
+const chars = "01";
+const fontSize = 16;
+const columns = canvas.width / fontSize;
+const drops = Array.from({ length: columns }, () => Math.random() * canvas.height);
+
+function drawMatrix() {
+    ctx.fillStyle = "rgba(0, 0, 0, 0.05)";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    ctx.fillStyle = "#00ff00";
+    ctx.font = fontSize + "px monospace";
+
+    for (let i = 0; i < drops.length; i++) {
+        const char = chars[Math.floor(Math.random() * chars.length)];
+        ctx.fillText(char, i * fontSize, drops[i] * fontSize);
+
+        if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) {
+            drops[i] = 0;
+        }
+
+        drops[i]++;
+    }
+}
+
+setInterval(drawMatrix, 50);
+
+// ---------------- FAKE PROGRESS BAR ----------------
+let progress = 0;
+const bar = document.getElementById("progress");
+const status = document.getElementById("status");
+
+const messages = [
+    "Checking core files...",
+    "Scanning memory sectors...",
+    "Detecting anomalies...",
+    "Bypassing firewall...",
+    "Indexing system registry...",
+    "WARNING: unknown process detected...",
+    "Attempting recovery..."
+];
+
+setInterval(() => {
+    if (progress < 95) {
+        progress += Math.random() * 2;
+        bar.style.width = progress + "%";
+    }
+
+    status.textContent = messages[Math.floor(Math.random() * messages.length)];
+}, 400);
+
+// ---------------- FAKE POPUP WINDOWS ----------------
+function spawnPopup() {
+    const width = 300;
+    const height = 150;
+    const left = Math.random() * (screen.width - width);
+    const top = Math.random() * (screen.height - height);
+
+    const popup = window.open(
+        "",
+        "",
+        `width=${width},height=${height},left=${left},top=${top}`
+    );
+
+    if (!popup) return;
+
+    popup.document.write(`
+        <body style="background:black;color:red;font-family:monospace;
+        display:flex;align-items:center;justify-content:center;height:100vh;">
+        <div>
+            <h3>ACCESS DENIED</h3>
+            <p>Unauthorized system interaction detected.</p>
+        </div>
+        </body>
+    `);
+
+    setTimeout(() => popup.close(), 2000);
+}
+
+// ---------------- SOUND + KEY EVENTS ----------------
+function beep() {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    osc.frequency.value = 600;
+    osc.connect(ctx.destination);
+    osc.start();
+    osc.stop(ctx.currentTime + 0.1);
+}
+
+document.addEventListener("keydown", () => {
+    beep();
+    spawnPopup();
+});
+
+// ---------------- RESIZE ----------------
+window.addEventListener("resize", () => {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+});
+</script>
+
+</body>
+</html>
